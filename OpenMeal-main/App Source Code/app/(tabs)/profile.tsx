@@ -123,7 +123,7 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <AppHeader title="OpenMeal" />
+      <AppHeader title="SmartNutri" />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.chartCarousel}>

@@ -49,13 +49,13 @@ const allSteps = [
 ];
 
 const storyMessages = [
-  "On July 4, 2024, Hua, et. al published Nutribench: A dataset for evaluating large language models on nutrition estimation from meal descriptions.",
-  "It found that Large Language Models, given good instructions, outperformed licensed nutritionists at estimating the nutritional content of a meal, given just a picture.",
-  "After reading the paper, I downloaded a bunch of apps that offered this type of AI-powered nutrition analysis. They were way overpriced, and had horrible UI.",
-  "More importantly, they were designed with a disbelief in the technology they were serving: almost all of them were overengineered to plug into nutrition databases that tended to persuade models away from the analysis that research showed them capable of.",
-  "So I built my own. It's 100% free, open-source, and gives you complete control over your data.",
-  "I hope you find it as useful as I do.",
-  "--Max Romer",
+  "Being a malnourished and underweight college student at Mapua Malayan, I struggled to track what I was actually eating every day.",
+  "I knew I needed to eat more and eat better — but counting calories manually was tedious, and most nutrition apps were either too expensive or too complicated.",
+  "So for my school project, I built SmartNutri — an AI-powered nutrition tracker that analyzes your meals just from a photo.",
+  "It uses Google Gemini, one of the most advanced AI models available, to instantly identify food and calculate calories, protein, carbs, and fats.",
+  "Everything stays on your device. No subscriptions. No accounts. Just point your camera at your food and let AI do the rest.",
+  "I hope SmartNutri helps you eat smarter — whether you're trying to gain weight, lose weight, or just be more aware of what you eat.",
+  "-- Euwan Abogadie, Mapua Malayan Colleges",
 ];
 
 
@@ -501,7 +501,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
         <View style={[styles.messageBubble, { backgroundColor: colors.cardBackground }]}>
           {index === 0 ? (
             <ThemedText style={styles.messageText}>
-              On July 4, 2024, Hua, et. al published{' '}
+              May 03, 2026{' '}
               <ThemedText style={{ color: colors.tint, textDecorationLine: 'underline' }} onPress={handleLinkPress}>
                 Nutribench: A dataset for evaluating large language models on nutrition estimation from meal descriptions
               </ThemedText>
@@ -516,7 +516,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
 
     const WelcomeTitle = () => (
       <View style={styles.welcomeTitleContainer}>
-        <ThemedText style={styles.welcome}>Welcome to OpenMeal</ThemedText>
+        <ThemedText style={styles.welcome}>Welcome to SmartNutri</ThemedText>
       </View>
     );
 
@@ -805,7 +805,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
 
   const renderByokExplanation = () => (
     <View style={styles.stepContainer}>
-      <ThemedText style={styles.question}>OpenMeal uses a Bring Your Own Key (BYOK) Model</ThemedText>
+      <ThemedText style={styles.question}>SmartNutri uses a Bring Your Own Key (BYOK) Model</ThemedText>
       <View style={styles.byokCardsContainer}>
         <View style={[styles.byokCard, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.byokCardHeader}>
@@ -813,11 +813,11 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
               <ThemedText style={styles.byokEmoji}>🧠</ThemedText>
             </View>
             <View style={styles.byokTitleContainer}>
-              <ThemedText style={styles.byokCardTitle}>OpenMeal uses Google Gemini models</ThemedText>
+              <ThemedText style={styles.byokCardTitle}>SmartNutri uses Google Gemini models</ThemedText>
             </View>
           </View>
           <ThemedText style={styles.byokCardSubtitle}>
-            OpenMeal's analysis features are built upon Google Gemini multimodal LLMs, which are trained to apply visual understanding to a general-purpose corpus of human knowledge. OpenMeal works because this corpus contains accurate descriptions of the nutritional values of most common human food.
+            SmartNutri's analysis features are built upon Google Gemini multimodal LLMs, which are trained to apply visual understanding to a general-purpose corpus of human knowledge. SmartNutri works because this corpus contains accurate descriptions of the nutritional values of most common human food.
           </ThemedText>
         </View>
         
@@ -845,7 +845,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
             </View>
           </View>
           <ThemedText style={styles.byokCardSubtitle}>
-            OpenMeal does not have a server or collect any of your data. Instead, your Gemini API key is stored in a secure vault on your device, and API calls are made directly to Google. Your meal history is stored on-device, and can be exported or deleted.
+            SmartNutri does not have a server or collect any of your data. Instead, your Gemini API key is stored in a secure vault on your device, and API calls are made directly to Google. Your meal history is stored on-device, and can be exported or deleted.
           </ThemedText>
         </View>
       </View>

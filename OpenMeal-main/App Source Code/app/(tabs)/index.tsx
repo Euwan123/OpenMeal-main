@@ -319,7 +319,7 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <AppHeader title="OpenMeal" />
+      <AppHeader title="SmartNutri" />
       
       <ScrollView
         ref={scrollViewRef}
