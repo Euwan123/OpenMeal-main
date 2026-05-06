@@ -11,7 +11,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ 
-  title = "OpenMeal"
+  title = "SmartNutri Scanner"
 }: AppHeaderProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iOS Installation - OpenMeal</title>
+    <title>iOS Installation - Smart Nutri</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         @font-face {
@@ -275,7 +275,7 @@
 <body>
     <header>
         <nav class="nav-container">
-            <a href="index.html" class="logo">OpenMeal</a>
+            <a href="index.html" class="logo">Smart Nutri</a>
             <div class="nav-links">
                 <a href="screenshots.html">Screenshots</a>
                 <a href="prompts.html">Prompts</a>
@@ -286,7 +286,7 @@
 
     <main class="container">
         <h1>iOS Installation</h1>
-        <p class="subtitle">Build and install OpenMeal on your iPhone from source using Xcode.</p>
+        <p class="subtitle">Build and install Smart Nutri on your iPhone from source using Xcode.</p>
 
         <div class="warning">
             <strong>⚠️ Warning:</strong> due to Apple's restrictions on sideloading, this app's installation must be periodically redone (7 days for free users/1 year for Developer Accounts). There is no fix for this. This installation (and reinstallation) can only be done with a computer running macOS.
@@ -375,7 +375,7 @@ cd OpenMeal/App\ Source\ Code</code></pre>
         </div>
 
         <h3>Open in Xcode</h3>
-        <pre><code>open ios/OpenMeal.xcworkspace</code></pre>
+        <pre><code>open ios/Smart Nutri.xcworkspace</code></pre>
 
         <div class="warning">
             Open the <code>.xcworkspace</code> file, not the <code>.xcodeproj</code>. The workspace includes CocoaPods dependencies.
@@ -386,20 +386,20 @@ cd OpenMeal/App\ Source\ Code</code></pre>
             <li>In Xcode, go to <strong>Xcode → Settings → Accounts</strong></li>
             <li>Click <strong>+</strong> and sign in with your Apple ID</li>
             <li>Select your account, click <strong>Manage Certificates</strong>, click <strong>+</strong>, select <strong>Apple Development</strong></li>
-            <li>In the project navigator, click <strong>OpenMeal</strong> (the blue project icon)</li>
-            <li>Select the <strong>OpenMeal</strong> target under TARGETS</li>
+            <li>In the project navigator, click <strong>Smart Nutri</strong> (the blue project icon)</li>
+            <li>Select the <strong>Smart Nutri</strong> target under TARGETS</li>
             <li>Go to <strong>Signing & Capabilities</strong></li>
             <li>Check <strong>Automatically manage signing</strong></li>
             <li>Select your Apple ID from the <strong>Team</strong> dropdown</li>
         </ol>
 
-        <p>If you see a bundle identifier error, change it to something unique like <code>com.yourname.openmeal</code>.</p>
+        <p>If you see a bundle identifier error, change it to something unique like <code>com.yourname.smartnutri</code>.</p>
 
         <h3>Remove Push Notifications (free accounts only)</h3>
         <p>Apple does not allow push notifications for apps installed with a free Apple ID. If you're using a free account, you must remove this capability or the build will fail. <strong>If you have a paid Apple Developer Program membership, skip this step.</strong></p>
         <ol>
-            <li>In the project navigator, click <strong>OpenMeal</strong> (the blue project icon)</li>
-            <li>Select the <strong>OpenMeal</strong> target under TARGETS</li>
+            <li>In the project navigator, click <strong>Smart Nutri</strong> (the blue project icon)</li>
+            <li>Select the <strong>Smart Nutri</strong> target under TARGETS</li>
             <li>Go to the <strong>Signing & Capabilities</strong> tab</li>
             <li>Find the <strong>Push Notifications</strong> capability</li>
             <li>Hover over it and click the <strong>X</strong> button to remove it</li>

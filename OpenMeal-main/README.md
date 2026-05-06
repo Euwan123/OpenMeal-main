@@ -1,13 +1,13 @@
 
-# OpenMeal - A Privacy-First, AI-Powered Nutrition Tracker
+# Smart Nutri - A Privacy-First, AI-Powered Nutrition Tracker
 
 ## Overview
 
-OpenMeal is an open-source, privacy-focused mobile nutrition tracker built with React Native and Expo. It leverages on-device machine learning and Google's Gemini API to provide users with detailed nutritional analysis from photos of their meals. All user data is stored locally, ensuring complete privacy.
+Smart Nutri is an open-source, privacy-focused mobile nutrition tracker built with React Native and Expo. It leverages on-device machine learning and Google's Gemini API to provide users with detailed nutritional analysis from photos of their meals. All user data is stored locally, ensuring complete privacy.
 
-This README provides a technical overview of the OpenMeal project, intended for developers and contributors.
+This README provides a technical overview of the Smart Nutri project, intended for developers and contributors.
 
-**[You can view the project website at https://maximilianromer.github.io/OpenMeal/](https://maximilianromer.github.io/OpenMeal/)**.
+**[View the Smart Nutri website](https://maximilianromer.github.io/OpenMeal/)**.
 
 ## Table of Contents
 
@@ -91,7 +91,7 @@ The application utilizes React's built-in Context API and custom hooks for state
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/maximilianromer/OpenMeal](https://github.com/maximilianromer/OpenMeal.git)
+    git clone [Smart Nutri Repository](https://github.com/maximilianromer/OpenMeal.git)
     cd OpenMeal
     ```
 

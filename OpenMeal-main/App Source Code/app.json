@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "OpenMeal",
-    "slug": "openmeal",
+    "name": "SmartNutri Scanner App",
+    "slug": "smartnutri",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Meal_Icon.png",
@@ -13,14 +13,14 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.maxromer.openmeal",
+      "bundleIdentifier": "com.maxromer.smartnutri",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.maxromer.openmeal",
+      "package": "com.maxromer.smartnutri",
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.health.WRITE_NUTRITION",

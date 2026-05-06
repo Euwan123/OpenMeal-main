@@ -78,7 +78,7 @@ describe('ExportImportService', () => {
         directoryUri: 'content://com.android.externalstorage.documents/tree/primary%3ADownload',
       });
       (FileSystem.StorageAccessFramework.createFileAsync as jest.Mock).mockResolvedValue(
-        'content://com.android.externalstorage.documents/document/primary%3ADownload%2FOpenMeal_Export_2024-01-01.json'
+        'content://com.android.externalstorage.documents/document/primary%3ADownload%2FSmart Nutri_Export_2024-01-01.json'
       );
 
       const progressCallback = jest.fn();
