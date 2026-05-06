@@ -274,23 +274,23 @@ export default function ProfileScreen() {
                 style={styles.authorImage}
               />
               <View style={styles.authorInfo}>
-                <ThemedText style={styles.authorName}>Max Romer</ThemedText>
+                <ThemedText style={styles.authorName}>Euwan Abogadie</ThemedText>
                 <ThemedText style={styles.authorTitle}>Designer and Developer</ThemedText>
               </View>
             </View>
             <ThemedText style={styles.authorDescription}>
-              Max is an undergraduate at Stanford University, planning to major in Symbolic Systems. He grew up in Park City, UT, and enjoys hiking and following technological advancements in his free time.
-            </ThemedText>
-            <View style={styles.authorLinks}>
+  Euwan is a college student at Mapua Malayan Colleges. He built SmartNutri as a school project after struggling with malnutrition and being underweight, and hopes it helps others track and improve their nutrition easily.
+</ThemedText>
+<View style={styles.authorLinks}>
               <TouchableOpacity
                 style={styles.authorLink}
-                onPress={() => Linking.openURL('https://linkedin.com/in/maxromer')}
+                onPress={() => Linking.openURL('https://www.linkedin.com/in/euwan-abogadie-833980313/')}
               >
                 <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>LinkedIn</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.authorLink}
-                onPress={() => Linking.openURL('https://github.com/maximilianromer')}
+                onPress={() => Linking.openURL('https://github.com/Euwan123')}
               >
                 <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>GitHub</ThemedText>
               </TouchableOpacity>
@@ -300,7 +300,7 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <View style={[styles.infoCard, { backgroundColor: colors.text + '10' }]}>
-            <ThemedText style={styles.appName}>About OpenMeal</ThemedText>
+            <ThemedText style={styles.appName}>About SmartNutri</ThemedText>
             <ThemedText style={styles.appDescription}>
               AI-powered meal tracking and nutritional analysis using computer vision and machine learning.
             </ThemedText>

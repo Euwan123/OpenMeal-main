@@ -885,7 +885,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
               <ThemedText style={styles.apiKeyCardTitle}>2. Enter your API key</ThemedText>
             </View>
             <ThemedText style={styles.apiKeyCardSubtitle}>
-              Your API key is stored in a secure vault locally on your device, and is not accessible to OpenMeal's developers.
+              Your API key is stored in a secure vault locally on your device, and is not accessible to Euwan.
             </ThemedText>
             <TextInput
               style={[styles.apiKeyInput, { borderColor: colors.text + '40', color: colors.text }]}
