@@ -1,7 +1,7 @@
 
 import { Tabs, useNavigation } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { Platform, DeviceEventEmitter } from 'react-native';
+import { Platform, DeviceEventEmitter, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/HapticTab';
@@ -71,8 +71,25 @@ export default function TabLayout() {
         <Tabs.Screen
           name="add"
           options={{
-            title: 'Add',
-            tabBarIcon: ({ color }) => <IconSymbol size={32} name="plus" color={color} />,
+            title: 'Scan',
+            tabBarIcon: () => (
+              <View
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 23,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: Colors[colorScheme ?? 'light'].tint,
+                }}
+              >
+                <IconSymbol
+                  size={22}
+                  name="camera.fill"
+                  color={Colors[colorScheme ?? 'light'].background}
+                />
+              </View>
+            ),
             tabBarButton: CustomAddButton,
           }}
         />
@@ -91,6 +108,14 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="font-license"
+          options={{
+            href: null,
+            tabBarStyle: { display: 'none' },
+            headerShown: false,
+          }}
+        />
+        <Tabs.Screen
+          name="terms"
           options={{
             href: null,
             tabBarStyle: { display: 'none' },

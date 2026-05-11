@@ -13,7 +13,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { OnboardingScreen } from '@/components/OnboardingScreen';
 import OnboardingService from '@/services/OnboardingService';
 import MealRemindersService from '@/services/MealRemindersService';
+import JoggingRemindersService from '@/services/JoggingRemindersService';
 import { resumePending } from '@/services/AnalysisProcessor';
+import { ThemedAlertHost } from '@/components/ThemedAlertHost';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -95,13 +97,15 @@ export default function RootLayout() {
     try {
       // Initialize meal reminders service
       await MealRemindersService.initialize();
+      await JoggingRemindersService.initialize();
 
-      // Handle notification responses (when user taps on notification)
       const subscription = Notifications.addNotificationResponseReceivedListener(response => {
         const data = response.notification.request.content.data;
         if (data?.action === 'open_add_meal') {
-          // Emit event to open AddMealModal
           DeviceEventEmitter.emit('openAddMealModal');
+        }
+        if (data?.action === 'open_jogging') {
+          DeviceEventEmitter.emit('openJoggingReminders');
         }
       });
 
@@ -137,6 +141,7 @@ export default function RootLayout() {
     return (
       <SafeAreaProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ThemedAlertHost />
           <OnboardingScreen onComplete={handleOnboardingComplete} />
           <StatusBar style="auto" />
         </ThemeProvider>
@@ -147,6 +152,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemedAlertHost />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />

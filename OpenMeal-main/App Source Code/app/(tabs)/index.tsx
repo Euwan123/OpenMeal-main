@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, DeviceEventEmitter, LogBox } from 'react-native';
+import { FadeInView } from '@/components/FadeInView';
 import { useFocusEffect } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const [meals, setMeals] = useState<MealAnalysis[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [greeting, setGreeting] = useState('');
+  const [achievementBanner, setAchievementBanner] = useState<string | null>(null);
   const [dailyNutrition, setDailyNutrition] = useState({
     calories: 0,
     protein: 0,
@@ -117,6 +119,14 @@ export default function HomeScreen() {
       fontStyle: 'italic',
       letterSpacing: 0.3,
     },
+    achievementBanner: {
+      marginHorizontal: 20,
+      marginTop: 8,
+      marginBottom: 4,
+      borderRadius: 14,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+    },
   });
 
   const getTimeBasedGreeting = () => {
@@ -124,35 +134,35 @@ export default function HomeScreen() {
     
     const greetings = {
       morning: [
-        "Good morning! 🌅",
-        "Rise and shine! 🌅",
-        "Have a great day! 🌅",
-        "Morning! 🌅",
-        "G'day! 🌅",
-        "Slept well? 🌅"
+        'Good morning',
+        'Rise and shine',
+        'Have a great day',
+        'Morning',
+        "G'day",
+        'Slept well?',
       ],
       afternoon: [
-        "Good afternoon! ☀️",
-        "Hello there! ☀️",
-        "Hi! ☀️",
-        "Howdy! ☀️",
-        "Afternoon's Greetings! ☀️",
-        "Today is the day! ☀️"
+        'Good afternoon',
+        'Hello there',
+        'Hi',
+        'Howdy',
+        'Afternoon greetings',
+        'Today is the day',
       ],
       evening: [
-        "Good evening! 🌆",
-        "Nice to see you! 🌆",
-        "Hi there! 🌆",
-        "Enjoy your evening! 🌆",
-        "Fun plans tonight? 🌆"
+        'Good evening',
+        'Nice to see you',
+        'Hi there',
+        'Enjoy your evening',
+        'Fun plans tonight?',
       ],
       lateNight: [
-        "Good night! 🌙",
-        "Working late? 🌙",
-        "It's late. Time to rest! 🌙",
-        "Up early? 🌙",
-        "You should be sleeping! 🌙"
-      ]
+        'Good night',
+        'Working late?',
+        'Time to rest',
+        'Up early?',
+        'You should be sleeping',
+      ],
     };
 
     let selectedGreetings;
@@ -296,12 +306,17 @@ export default function HomeScreen() {
     const scrollToTopListener = DeviceEventEmitter.addListener('scrollToTop', () => {
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     });
+    const achievementListener = DeviceEventEmitter.addListener('achievementUnlocked', (payload: { title?: string }) => {
+      setAchievementBanner(payload?.title ?? 'Achievement unlocked');
+      setTimeout(() => setAchievementBanner(null), 3200);
+    });
 
     return () => {
       mealAddedListener.remove();
       mealUpdatedListener.remove();
       mealDeletedListener.remove();
       scrollToTopListener.remove();
+      achievementListener.remove();
     };
   }, []);
 
@@ -329,6 +344,15 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {achievementBanner ? (
+          <FadeInView>
+            <View style={[styles.achievementBanner, { backgroundColor: colors.tint + '18', borderColor: colors.tint + '35', borderWidth: 1 }]}>
+              <ThemedText type="defaultSemiBold">{achievementBanner}</ThemedText>
+              <ThemedText type="caption">New achievement unlocked</ThemedText>
+            </View>
+          </FadeInView>
+        ) : null}
+
         {greeting && (
           <View style={styles.greetingContainer}>
             <ThemedText style={[styles.greetingText, { color: colors.text }]}>

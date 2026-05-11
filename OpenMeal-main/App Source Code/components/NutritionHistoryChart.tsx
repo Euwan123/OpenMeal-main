@@ -33,6 +33,8 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
   const [chartData, setChartData] = useState<NutrientData[]>([]);
   const [goalValue, setGoalValue] = useState(0);
   const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { title, unit, goalKey, dataKey } = nutrientDetails[nutrient];
 
@@ -47,12 +49,14 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
   const plotHeight = chartHeight - chartPaddingTop - chartPaddingBottom;
 
   const loadData = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [goals, meals] = await Promise.all([
         DailyGoalsService.getDailyGoals(),
-        FileSystemStorageService.getMealHistory()
+        FileSystemStorageService.getMealHistory(),
       ]);
-      
+
       setGoalValue(goals[goalKey]);
 
       const last7Days: NutrientData[] = [];
@@ -63,7 +67,7 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
         const date = new Date(today);
         date.setDate(date.getDate() - i);
         date.setHours(0, 0, 0, 0);
-        
+
         const nextDate = new Date(date);
         nextDate.setDate(nextDate.getDate() + 1);
 
@@ -85,8 +89,12 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
       }
 
       setChartData(last7Days);
-    } catch (error) {
-      console.error(`Error loading ${nutrient} data:`, error);
+    } catch (loadError) {
+      console.error(`Error loading ${nutrient} data:`, loadError);
+      setError('Growth data is unavailable right now.');
+      setChartData([]);
+    } finally {
+      setLoading(false);
     }
   }, [nutrient, goalKey, dataKey]);
 
@@ -109,19 +117,25 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
     ? Math.round(chartData.reduce((acc, curr) => acc + curr.value, 0) / chartData.length)
     : 0;
 
+  const firstHalf = chartData.slice(0, 3).reduce((sum, item) => sum + item.value, 0);
+  const secondHalf = chartData.slice(4).reduce((sum, item) => sum + item.value, 0);
+  const growthDelta = secondHalf - firstHalf;
+  const growthLabel = growthDelta > 0 ? 'Trending up' : growthDelta < 0 ? 'Trending down' : 'Holding steady';
+
   const maxValue = Math.max(...chartData.map(d => d.value), goalValue * 1.2, 1);
   const minValue = 0;
   const valueRange = maxValue - minValue;
 
   const points = chartData.map((data, index) => {
-    const x = chartPaddingLeft + (index / (chartData.length - 1)) * plotWidth;
+    const denominator = Math.max(chartData.length - 1, 1);
+    const x = chartPaddingLeft + (index / denominator) * plotWidth;
     const y = chartPaddingTop + plotHeight - ((data.value - minValue) / valueRange) * plotHeight;
     return { x, y, data };
   });
 
-  const linePath = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-    .join(' ');
+  const linePath = points.length > 0
+    ? points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+    : '';
 
   const goalY = chartPaddingTop + plotHeight - ((goalValue - minValue) / valueRange) * plotHeight;
 
@@ -177,11 +191,20 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
   return (
     <ThemedView style={[styles.container, { backgroundColor: colors.background, borderColor: colors.text + '20' }]}>
       <View style={styles.header}>
-        <ThemedText style={styles.title}>{title}: Week</ThemedText>
-        <ThemedText style={styles.subtitle}>Last 7 days average: {averageValue} {unit}</ThemedText>
+        <ThemedText type="label">Growth</ThemedText>
+        <ThemedText style={styles.title}>{title}</ThemedText>
+        <ThemedText type="caption">7-day average {averageValue} {unit}</ThemedText>
+        <ThemedText type="caption" style={{ color: chartColor }}>{growthLabel}</ThemedText>
       </View>
 
       <View style={styles.chartContainer}>
+        {loading ? (
+          <ThemedText type="caption">Loading growth chart...</ThemedText>
+        ) : error ? (
+          <ThemedText type="caption">{error}</ThemedText>
+        ) : chartData.every(day => day.value === 0) ? (
+          <ThemedText type="caption">Log meals to unlock your growth trend.</ThemedText>
+        ) : (
         <View style={styles.svgContainer}>
           <Svg width={chartWidth} height={chartHeight}>
             <Line
@@ -273,6 +296,7 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
             <View style={[styles.touchOverlay, { width: chartWidth, height: chartHeight }]} />
           </TouchableWithoutFeedback>
         </View>
+        )}
       </View>
     </ThemedView>
   );

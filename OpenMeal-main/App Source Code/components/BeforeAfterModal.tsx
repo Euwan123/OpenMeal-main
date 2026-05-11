@@ -4,7 +4,6 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Dimensions,
   Platform,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { themedAlert } from '@/services/ThemedAlert';
 
 interface BeforeAfterModalProps {
   visible: boolean;
@@ -55,7 +55,7 @@ export function BeforeAfterModal({ visible, onClose, onPhotoTaken }: BeforeAfter
       }
     } catch (error) {
       console.error('Error taking picture:', error);
-      Alert.alert('Error', 'Failed to take picture. Please try again.');
+      themedAlert('Unable to capture', 'The photo could not be taken. Please try again.');
     }
   };
 
@@ -63,7 +63,7 @@ export function BeforeAfterModal({ visible, onClose, onPhotoTaken }: BeforeAfter
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant photo library permissions to use this feature.');
+        themedAlert('Photo access needed', 'Allow photo library access to choose an image.');
         return;
       }
 
@@ -79,7 +79,7 @@ export function BeforeAfterModal({ visible, onClose, onPhotoTaken }: BeforeAfter
       }
     } catch (error) {
       console.error('Gallery picker error:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      themedAlert('Unable to open gallery', 'The selected image could not be loaded. Please try again.');
     }
   };
 

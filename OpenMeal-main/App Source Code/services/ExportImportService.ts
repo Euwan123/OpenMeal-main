@@ -138,7 +138,7 @@ class ExportImportService {
       // Generate filename with date
       const date = new Date();
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const filename = `OpenMeal_Export_${dateStr}.json`;
+      const filename = `SmartNutri_Export_${dateStr}.json`;
 
       // Convert to JSON
       const jsonContent = JSON.stringify(exportData, null, 2);

@@ -43,6 +43,22 @@ const MAPPING = {
   'recommend': 'recommend',
   'relog': 'replay',
   'rebase-edit': 'content-copy',
+  'fork.knife': 'restaurant',
+  'leaf': 'eco',
+  'book': 'menu-book',
+  'flame': 'local-fire-department',
+  'calendar': 'event',
+  'star.fill': 'star',
+  'globe': 'public',
+  'sunrise': 'wb-sunny',
+  'scalemass': 'balance',
+  'arrow.uturn.right': 'replay',
+  'figure.run': 'directions-run',
+  'bolt.fill': 'bolt',
+  'lock.fill': 'lock',
+  'checkmark.seal.fill': 'verified',
+  'chart.line.uptrend.xyaxis': 'show-chart',
+  'wallet': 'account-balance-wallet',
 } as const;
 
 /**

@@ -4,8 +4,7 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  Alert,
-  Dimensions,
+  useWindowDimensions,
   DeviceEventEmitter,
   Platform,
   StatusBar,
@@ -19,7 +18,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import GeminiService from '@/services/GeminiService';
-import FileSystemStorageService, { EMPTY_ANALYSIS } from '@/services/FileSystemStorageService';
+import FileSystemStorageService, { EMPTY_ANALYSIS, MealAnalysis } from '@/services/FileSystemStorageService';
 import * as FileSystem from 'expo-file-system';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CommentModal } from '@/components/CommentModal';
@@ -29,6 +28,8 @@ import { setStatusBarStyle } from 'expo-status-bar';
 import { writeMealToHealthConnect } from '@/services/HealthConnectService';
 import * as Notifications from 'expo-notifications';
 import { processMeal } from '@/services/AnalysisProcessor';
+import { FadeInView } from '@/components/FadeInView';
+import { themedAlert } from '@/services/ThemedAlert';
 
 interface AddMealModalProps {
   visible: boolean;
@@ -36,9 +37,8 @@ interface AddMealModalProps {
   onMealAdded: () => void;
 }
 
-type Stage = 'camera' | 'preview';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+type Stage = 'mode' | 'camera' | 'preview';
+type ScanMode = 'meal' | 'ingredients';
 
 // Custom hook to manage system UI for modal
 const useModalSystemUI = (visible: boolean, colorScheme: 'light' | 'dark') => {
@@ -61,12 +61,17 @@ const useModalSystemUI = (visible: boolean, colorScheme: 'light' | 'dark') => {
 export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const horizontalPadding = Math.max(16, windowWidth * 0.05);
+  const viewfinderWidth = windowWidth - horizontalPadding * 2;
+  const viewfinderHeight = Math.min(viewfinderWidth * 4 / 3, windowHeight * 0.56);
 
   // Use the system UI hook
   useModalSystemUI(visible, colorScheme ?? 'light');
 
   // Stage management
-  const [stage, setStage] = useState<Stage>('camera');
+  const [stage, setStage] = useState<Stage>('mode');
+  const [scanMode, setScanMode] = useState<ScanMode | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [afterPhoto, setAfterPhoto] = useState<string | null>(null);
   const [comment, setComment] = useState('');
@@ -82,10 +87,10 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
 
   // Request camera permissions when modal opens
   useEffect(() => {
-    if (visible && !cameraPermission?.granted) {
+    if (visible && stage !== 'mode' && !cameraPermission?.granted) {
       requestCameraPermission();
     }
-  }, [visible, cameraPermission]);
+  }, [visible, stage, cameraPermission]);
 
   
 
@@ -104,7 +109,7 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
       }
     } catch (error) {
       console.error('Error taking picture:', error);
-      Alert.alert('Error', 'Failed to take picture. Please try again.');
+      themedAlert('Unable to capture', 'The photo could not be taken. Please try again.');
     }
   };
 
@@ -112,7 +117,14 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant photo library permissions to use this feature.');
+        themedAlert(
+          'Photo access needed',
+          'Allow photo library access to choose an image for scanning.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Open settings', style: 'default', onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync() },
+          ]
+        );
         return;
       }
 
@@ -128,7 +140,7 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
       }
     } catch (error) {
       console.error('Gallery picker error:', error);
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      themedAlert('Unable to open gallery', 'The selected image could not be loaded. Please try again.');
     }
   };
 
@@ -138,6 +150,21 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
     setAfterPhoto(null);
     setComment('');
     setStage('camera');
+  };
+
+  const selectScanMode = (mode: ScanMode) => {
+    setScanMode(mode);
+    setStage('camera');
+  };
+
+  const getHeaderTitle = () => {
+    if (stage === 'mode') {
+      return 'Scan';
+    }
+    if (scanMode === 'ingredients') {
+      return stage === 'camera' ? 'Scan Ingredients' : 'Review Ingredients';
+    }
+    return 'Add Meal';
   };
 
   const handleBeforeAfter = () => {
@@ -172,14 +199,15 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
       const mealId = Date.now().toString();
 
       // Create a pending meal entry with loading state
-      const pendingMeal = {
+      const pendingMeal: MealAnalysis = {
         id: mealId,
         timestamp: new Date().toISOString(),
         imageUri: '',
-        analysis: null, // null indicates loading state
+        analysis: null,
         comment: commentText,
         isLoading: true,
-        hasError: false
+        hasError: false,
+        scanType: 'meal',
       };
 
       // Save pending meal immediately
@@ -202,7 +230,7 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
       await Notifications.dismissAllNotificationsAsync();
 
     } catch (error) {
-      Alert.alert('Error', 'Failed to save meal. Please try again.');
+      themedAlert('Unable to save', 'Your meal could not be saved. Please try again.');
       console.error('Save comment meal error:', error);
     } finally {
       setIsLoading(false);
@@ -211,7 +239,7 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
 
   const saveMeal = async () => {
     if (!capturedPhoto) {
-      Alert.alert('No photo', 'Please take a photo of your meal.');
+      themedAlert('Photo required', 'Take or choose a photo before saving this scan.');
       return;
     }
 
@@ -221,14 +249,15 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
       const mealId = Date.now().toString();
 
       // Create a pending meal entry with loading state
-      const pendingMeal = {
+      const pendingMeal: MealAnalysis = {
         id: mealId,
         timestamp: new Date().toISOString(),
         imageUri: capturedPhoto,
         afterImageUri: afterPhoto || undefined,
-        analysis: null, // null indicates loading state
+        analysis: null,
         comment: comment,
-        isLoading: true
+        isLoading: true,
+        scanType: scanMode ?? 'meal',
       };
 
       // Save pending meal immediately
@@ -251,14 +280,15 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
       await Notifications.dismissAllNotificationsAsync();
 
     } catch (error) {
-      Alert.alert('Error', 'Failed to save meal. Please try again.');
+      themedAlert('Unable to save', 'Your meal could not be saved. Please try again.');
       console.error('Save error:', error);
       setIsLoading(false);
     }
   };
 
   const resetModal = () => {
-    setStage('camera');
+    setStage('mode');
+    setScanMode(null);
     setCapturedPhoto(null);
     setAfterPhoto(null);
     setComment('');
@@ -274,7 +304,7 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
   };
 
   // Don't render anything if we don't have camera permissions
-  if (!cameraPermission?.granted) {
+  if (visible && stage !== 'mode' && !cameraPermission?.granted) {
     return (
       <Modal
         visible={visible}
@@ -283,27 +313,40 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
         onRequestClose={handleClose}
       >
         <ThemedView style={styles.permissionContainer}>
-          <IconSymbol name="camera.fill" size={64} color={colors.text} />
-          <ThemedText style={styles.permissionTitle}>Camera Access Required</ThemedText>
-          <ThemedText style={styles.permissionText}>
-            Please grant camera permissions to take photos of your meals.
-          </ThemedText>
-          <TouchableOpacity 
-            style={[styles.permissionButton, { backgroundColor: colors.tint }]}
-            onPress={requestCameraPermission}
+          <View
+            style={[
+              styles.permissionCard,
+              {
+                width: Math.min(windowWidth - 40, 420),
+                backgroundColor: colors.cardBackground,
+                borderColor: colors.text + '14',
+              },
+            ]}
           >
-            <ThemedText style={[styles.permissionButtonText, { color: colors.background }]}>
-              Grant Permission
+            <View style={[styles.permissionIconWrap, { backgroundColor: colors.tint + '16' }]}>
+              <IconSymbol name="camera.fill" size={30} color={colors.tint} />
+            </View>
+            <ThemedText type="headline" style={styles.permissionTitle}>Camera access</ThemedText>
+            <ThemedText type="caption" style={styles.permissionText}>
+              SmartNutri needs camera permission to scan meals and ingredients.
             </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.permissionCancelButton}
-            onPress={handleClose}
-          >
-            <ThemedText style={[styles.permissionCancelText, { color: colors.text }]}>
-              Cancel
-            </ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.permissionButton, { backgroundColor: colors.tint }]}
+              onPress={requestCameraPermission}
+            >
+              <ThemedText style={[styles.permissionButtonText, { color: colors.background }]}>
+                Allow camera
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.permissionDenyButton, { backgroundColor: colors.text + '10' }]}
+              onPress={handleClose}
+            >
+              <ThemedText style={[styles.permissionDenyText, { color: colors.text }]}>
+                Not now
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </ThemedView>
       </Modal>
     );
@@ -336,16 +379,58 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
             <IconSymbol name="xmark" size={24} color={colors.text} />
           </TouchableOpacity>
           <ThemedText style={[styles.headerTitle, { color: colors.text }]}>
-            {stage === 'camera' ? 'Add Meal' : 'Add Meal'}
+            {getHeaderTitle()}
           </ThemedText>
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Stage 1: Camera View */}
+        {stage === 'mode' && (
+          <View style={[styles.modeContainer, { paddingHorizontal: horizontalPadding }]}>
+            <FadeInView>
+              <ThemedText type="headline" style={styles.modeTitle}>What do you want to scan?</ThemedText>
+              <ThemedText type="caption" style={styles.modeSubtitle}>
+                Choose a finished meal or the ingredients you have on hand.
+              </ThemedText>
+            </FadeInView>
+
+            <FadeInView delay={80}>
+              <TouchableOpacity
+                style={[styles.modeCard, { backgroundColor: colors.cardBackground, borderColor: colors.text + '12' }]}
+                onPress={() => selectScanMode('meal')}
+              >
+                <View style={[styles.modeIconWrap, { backgroundColor: colors.tint + '16' }]}>
+                  <IconSymbol name="fork.knife" size={24} color={colors.tint} />
+                </View>
+                <View style={styles.modeTextWrap}>
+                  <ThemedText type="defaultSemiBold">Scan a meal</ThemedText>
+                  <ThemedText type="caption">Analyze food and nutrition from a photo.</ThemedText>
+                </View>
+                <IconSymbol name="chevron.right" size={16} color={colors.text + '60'} />
+              </TouchableOpacity>
+            </FadeInView>
+
+            <FadeInView delay={140}>
+              <TouchableOpacity
+                style={[styles.modeCard, { backgroundColor: colors.cardBackground, borderColor: colors.text + '12' }]}
+                onPress={() => selectScanMode('ingredients')}
+              >
+                <View style={[styles.modeIconWrap, { backgroundColor: colors.tint + '16' }]}>
+                  <IconSymbol name="leaf" size={24} color={colors.tint} />
+                </View>
+                <View style={styles.modeTextWrap}>
+                  <ThemedText type="defaultSemiBold">Scan ingredients</ThemedText>
+                  <ThemedText type="caption">Detect ingredients and generate a recipe.</ThemedText>
+                </View>
+                <IconSymbol name="chevron.right" size={16} color={colors.text + '60'} />
+              </TouchableOpacity>
+            </FadeInView>
+          </View>
+        )}
+
         {stage === 'camera' && (
           <View style={styles.cameraContainer}>
             <View style={styles.cameraViewfinderContainer}>
-              <View style={styles.cameraViewfinder}>
+              <View style={[styles.cameraViewfinder, { width: viewfinderWidth, height: viewfinderHeight }]}>
                 <CameraView
                   key={cameraPermission?.granted ? 'camera-granted' : 'camera-denied'}
                   ref={cameraRef}
@@ -371,9 +456,13 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
                 <View style={[styles.shutterInner, { backgroundColor: colors.tint }]} />
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-                <ThemedText style={{ color: colors.text }}>Skip</ThemedText>
-              </TouchableOpacity>
+              {scanMode === 'meal' ? (
+                <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
+                  <ThemedText style={{ color: colors.text }}>Skip</ThemedText>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.skipButton} />
+              )}
             </View>
           </View>
         )}
@@ -395,7 +484,10 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
                   </View>
                 </View>
               ) : (
-                <Image source={{ uri: capturedPhoto }} style={styles.capturedPhoto} />
+                <Image
+                  source={{ uri: capturedPhoto }}
+                  style={[styles.capturedPhoto, { width: viewfinderWidth, height: viewfinderHeight }]}
+                />
               )}
             </View>
 
@@ -405,12 +497,16 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
                 <TouchableOpacity onPress={retakePhoto} style={styles.actionButton}>
                   <ThemedText style={[styles.actionButtonText, { color: colors.text }]}>Retake</ThemedText>
                 </TouchableOpacity>
-                
-                <ThemedText style={[styles.actionButtonSeparator, { color: colors.text + '40' }]}>•</ThemedText>
-                
-                <TouchableOpacity onPress={handleBeforeAfter} style={styles.actionButton}>
-                  <ThemedText style={[styles.actionButtonText, { color: colors.text }]}>Before & After</ThemedText>
-                </TouchableOpacity>
+
+                {scanMode === 'meal' ? (
+                  <ThemedText style={[styles.actionButtonSeparator, { color: colors.text + '40' }]}>•</ThemedText>
+                ) : null}
+
+                {scanMode === 'meal' ? (
+                  <TouchableOpacity onPress={handleBeforeAfter} style={styles.actionButton}>
+                    <ThemedText style={[styles.actionButtonText, { color: colors.text }]}>Before & After</ThemedText>
+                  </TouchableOpacity>
+                ) : null}
               </View>
 
               {/* Fake Comment Input */}
@@ -441,7 +537,7 @@ export function AddMealModal({ visible, onClose, onMealAdded }: AddMealModalProp
                   <LoadingSpinner />
                 ) : (
                   <ThemedText style={[styles.saveButtonText, { color: colors.background }]}>
-                    Save
+                    {scanMode === 'ingredients' ? 'Generate Recipe' : 'Save'}
                   </ThemedText>
                 )}
               </TouchableOpacity>
@@ -491,37 +587,48 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: 24,
+  },
+  permissionCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'stretch',
+    gap: 12,
+  },
+  permissionIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
   permissionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 16,
     textAlign: 'center',
   },
   permissionText: {
-    fontSize: 16,
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 40,
-    lineHeight: 24,
+    lineHeight: 20,
+    marginBottom: 8,
   },
   permissionButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 12,
-    marginBottom: 16,
+    alignItems: 'center',
   },
   permissionButtonText: {
     fontSize: 16,
     fontFamily: 'TikTokSans-Bold',
   },
-  permissionCancelButton: {
-    paddingVertical: 12,
+  permissionDenyButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  permissionCancelText: {
-    fontSize: 16,
+  permissionDenyText: {
+    fontSize: 15,
+    fontFamily: 'TikTokSans-SemiBold',
   },
 
   // Header styles
@@ -563,8 +670,6 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   cameraViewfinder: {
-    width: screenWidth - 40,
-    height: Math.min((screenWidth - 40) * 4 / 3, screenHeight * 0.6),
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -627,8 +732,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   capturedPhoto: {
-    width: screenWidth - 40,
-    height: (screenWidth - 40) * 4 / 3,
     borderRadius: 16,
   },
   previewControls: {
@@ -706,5 +809,37 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 18,
     fontFamily: 'TikTokSans-Bold',
+  },
+  modeContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 16,
+  },
+  modeTitle: {
+    marginBottom: 6,
+  },
+  modeSubtitle: {
+    marginBottom: 8,
+  },
+  modeCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 12,
+  },
+  modeIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeTextWrap: {
+    flex: 1,
+    gap: 4,
   },
 });

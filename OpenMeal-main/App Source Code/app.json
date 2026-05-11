@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SmartNutri Scanner App",
+    "name": "SmartNutri Scanner Application",
     "slug": "smartnutri",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,14 +13,14 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.maxromer.smartnutri",
+      "bundleIdentifier": "com.euwanabogadie.smartnutri",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.maxromer.smartnutri",
+      "package": "com.euwanabogadie.smartnutri",
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.health.WRITE_NUTRITION",

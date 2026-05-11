@@ -38,6 +38,8 @@ Contextual Information & Guidelines:
 
 7. Units: Ensure all nutritional values are reported in the units specified above (kcal, g).
 
+8. Filipino Dish Labeling: When a food item is Filipino or commonly has a Filipino name, format the item_name and title as English first with the Filipino name in parentheses (for example, Spring Rolls (Lumpia), Chicken Stew (Tinola)). For non-Filipino items, use clear English names without parentheses.
+
 Output Format Specification:
 The final output MUST be a single, valid JSON object strictly adhering to the following schema:
 {
@@ -168,6 +170,8 @@ Critical Analysis Guidelines:
    - Encouraging balanced nutrition and mindful eating
    - Always provide at least one insight (either benefit or concern)
    - Keep bullet points concise and educational
+
+7. Filipino Dish Labeling: When a food item is Filipino or commonly has a Filipino name, format the item_name and title as English first with the Filipino name in parentheses (for example, Spring Rolls (Lumpia), Chicken Stew (Tinola)). For non-Filipino items, use clear English names without parentheses.
 
 Output Format Specification:
 The final output MUST be a single, valid JSON object strictly adhering to the following schema:
@@ -305,6 +309,8 @@ Input Processing Guidelines:
    - Always provide at least one insight (either benefit or concern)
    - Keep bullet points concise and educational
 
+7. Filipino Dish Labeling: When a food item is Filipino or commonly has a Filipino name, format the item_name and title as English first with the Filipino name in parentheses (for example, Spring Rolls (Lumpia), Chicken Stew (Tinola)). For non-Filipino items, use clear English names without parentheses.
+
 Output Format Specification:
 The final output MUST be a single, valid JSON object strictly adhering to the following schema:
 {
@@ -421,6 +427,7 @@ Correction Guidelines:
 *   Update Meal Insights: Based on the corrected meal items, generate updated meal insights with 0-4 health benefits and 0-4 health concerns. Focus on natural whole foods vs processed foods, beneficial nutrients, fiber, antioxidants, healthy fats, added sugars, excessive sodium, trans fats, seed oils, etc. Always provide at least one insight.
 *   Maintain Structure: The output must be a single, valid JSON object with the exact same schema as the original analysis.
 *   Be Smart: If the user says "that's not chicken, it's tofu", replace the chicken item with tofu and find the correct nutritional information for the specified serving size. If they say "I had a glass of milk with it", add a new item for the milk. If they say "the portion was much larger", adjust the serving size and recalculate nutrition accordingly.
+*   Filipino Dish Labeling: When a food item is Filipino or commonly has a Filipino name, format the item_name and title as English first with the Filipino name in parentheses (for example, Spring Rolls (Lumpia), Chicken Stew (Tinola)). For non-Filipino items, use clear English names without parentheses.
 
 Output Format Specification:
 The final output MUST be a single, valid JSON object strictly adhering to the following schema:
@@ -500,6 +507,93 @@ The final output MUST be a single, valid JSON object strictly adhering to the fo
  },
  "required": [
    "title",
+   "meal_items",
+   "total_meal_nutritional_values",
+   "meal_insights"
+ ]
+}
+
+Do not include any text outside of this JSON object.`;
+
+const INGREDIENT_RECIPE_SYSTEM_PROMPT = `Role:
+You are an expert Filipino and international home cook and nutritionist. Analyze an image of raw or pantry ingredients, identify what is visible, and generate a practical recipe that uses those ingredients.
+
+Primary Task:
+Given an image of ingredients, list each identifiable ingredient, propose a realistic recipe, estimate nutrition for one serving of the finished dish, and return a single JSON object.
+
+Guidelines:
+1. Identify every distinct ingredient you can see or reasonably infer.
+2. Prefer Filipino home-cooking when the ingredients fit, but use any cuisine that matches what is visible.
+3. Format Filipino dish names as English first with the Filipino name in parentheses when applicable.
+4. Provide clear numbered recipe steps that a home cook can follow.
+5. Estimate one realistic serving size and calculate calories, carbohydrates, protein, and fat for that serving.
+6. Include concise health benefits and concerns for the finished dish.
+
+Output Format Specification:
+The final output MUST be a single, valid JSON object strictly adhering to the following schema:
+{
+ "type": "object",
+ "properties": {
+   "title": { "type": "string" },
+   "detected_ingredients": {
+     "type": "array",
+     "items": { "type": "string" }
+   },
+   "recipe_steps": {
+     "type": "array",
+     "items": { "type": "string" }
+   },
+   "meal_items": {
+     "type": "array",
+     "items": {
+       "type": "object",
+       "properties": {
+         "item_name": { "type": "string" },
+         "estimated_serving_size": { "type": "string" },
+         "calories": { "type": "number" },
+         "total_carbohydrate_g": { "type": "number" },
+         "protein_g": { "type": "number" },
+         "total_fat_g": { "type": "number" },
+         "notes": { "type": "string" }
+       },
+       "required": [
+         "item_name",
+         "estimated_serving_size",
+         "calories",
+         "total_carbohydrate_g",
+         "protein_g",
+         "total_fat_g"
+       ]
+     }
+   },
+   "total_meal_nutritional_values": {
+     "type": "object",
+     "properties": {
+       "total_calories": { "type": "number" },
+       "total_total_carbohydrate_g": { "type": "number" },
+       "total_protein_g": { "type": "number" },
+       "total_total_fat_g": { "type": "number" }
+     },
+     "required": [
+       "total_calories",
+       "total_total_carbohydrate_g",
+       "total_protein_g",
+       "total_total_fat_g"
+     ]
+   },
+   "meal_insights": {
+     "type": "object",
+     "properties": {
+       "health_benefits": { "type": "array", "items": { "type": "string" } },
+       "health_concerns": { "type": "array", "items": { "type": "string" } }
+     },
+     "required": ["health_benefits", "health_concerns"]
+   }
+ },
+ "required": [
+   "title",
+   "detected_ingredients",
+   "recipe_steps",
    "meal_items",
    "total_meal_nutritional_values",
    "meal_insights"
@@ -674,6 +768,49 @@ Please identify all food and beverage items mentioned, estimate reasonable servi
     } catch (error) {
       console.error('Gemini Before/After API Error:', error);
       throw new Error('Failed to analyze before/after images with Gemini API');
+    }
+  }
+
+  async analyzeIngredients(base64Image: string, comment?: string): Promise<any> {
+    try {
+      await this.initializeClient();
+
+      if (!this.genAI) {
+        throw new Error('Failed to initialize Gemini client');
+      }
+
+      const selectedModel = await this.getSelectedModel();
+      const model = this.genAI.getGenerativeModel({
+        model: selectedModel,
+        systemInstruction: INGREDIENT_RECIPE_SYSTEM_PROMPT,
+      });
+
+      const imagePart = {
+        inlineData: {
+          data: base64Image,
+          mimeType: 'image/jpeg',
+        },
+      };
+
+      let promptText = 'Identify the ingredients in this image and generate a recipe with estimated nutrition for one serving in the specified JSON format.';
+
+      if (comment && comment.trim()) {
+        promptText += ` The user added this note: "${comment.trim()}"`;
+      }
+
+      const result = await model.generateContent([promptText, imagePart]);
+      const response = await result.response;
+      const text = response.text();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        throw new Error('No valid JSON found in response');
+      }
+
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Gemini Ingredient Recipe API Error:', error);
+      throw new Error('Failed to generate a recipe from ingredients');
     }
   }
 

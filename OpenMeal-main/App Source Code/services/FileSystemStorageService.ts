@@ -26,6 +26,7 @@ export interface MealAnalysis {
   comment?: string;
   isLoading?: boolean;
   hasError?: boolean;
+  scanType?: 'meal' | 'ingredients';
 }
 
 interface MealIndex {

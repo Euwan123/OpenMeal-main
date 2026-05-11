@@ -4,7 +4,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,7 +12,9 @@ import {
   Modal,
   StatusBar,
   Animated,
+  Image,
 } from 'react-native';
+import { FadeInView } from '@/components/FadeInView';
 import WheelPicker from '@quidone/react-native-wheel-picker';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -27,6 +28,8 @@ import ExportImportService from '@/services/ExportImportService';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { ExportImportModal } from '@/components/ExportImportModal';
+import { themedAlert } from '@/services/ThemedAlert';
+import { TERMS_OF_SERVICE } from '@/constants/LegalContent';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -119,6 +122,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
     carbs: 250,
   });
   const [apiKey, setApiKey] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [customModel, setCustomModel] = useState('');
   const [loading, setLoading] = useState(false);
@@ -235,7 +239,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
       case 'summary':
         return true;
       case 'apiKey':
-        return apiKey.trim() !== '' && apiKey.startsWith('AIza') && apiKey.length >= 30;
+        return acceptedTerms && apiKey.trim() !== '' && apiKey.startsWith('AIza') && apiKey.length >= 30;
       case 'modelSelector':
         if (selectedModel === 'custom') {
           return customModel.trim() !== '';
@@ -248,7 +252,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
 
   const goNext = () => {
     if (!validateCurrentStep()) {
-      Alert.alert('Required Information', 'Please fill in all required information before continuing.');
+      themedAlert('Required information', 'Complete the current step before continuing.');
       return;
     }
     if (step < steps.length - 1) {
@@ -310,13 +314,17 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
   const handleFinish = async () => {
     if (mode === 'onboarding') {
       if (!apiKey.trim()) {
-        Alert.alert('Required', 'Please enter your Gemini API key to continue.');
+        themedAlert('API key required', 'Enter your Gemini API key to continue setup.');
+        return;
+      }
+      if (!acceptedTerms) {
+        themedAlert('Terms required', 'Accept the Terms of Service before finishing setup.');
         return;
       }
       if (!apiKey.startsWith('AIza') || apiKey.length < 30) {
-        Alert.alert(
-          'Invalid API Key',
-          'Please enter a valid Gemini API key. It should start with "AIza" and be at least 30 characters long.'
+        themedAlert(
+          'Invalid API key',
+          'Use a valid Gemini API key that starts with AIza and is at least 30 characters long.'
         );
         return;
       }
@@ -345,7 +353,7 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
       await DailyGoalsService.saveDailyGoals(goals);
       onComplete();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save onboarding data.');
+      themedAlert('Setup failed', 'Onboarding data could not be saved. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -514,12 +522,6 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
       </View>
     );
 
-    const WelcomeTitle = () => (
-      <View style={styles.welcomeTitleContainer}>
-        <ThemedText style={styles.welcome}>Welcome to SmartNutri</ThemedText>
-      </View>
-    );
-
     return (
       <View style={styles.welcomeContainer}>
         <ScrollView
@@ -528,9 +530,20 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
           contentContainerStyle={styles.messagesContentContainer}
           showsVerticalScrollIndicator={false}
         >
-          <WelcomeTitle />
+          <FadeInView>
+            <View style={[styles.welcomeHero, { backgroundColor: colors.cardBackground, borderColor: colors.text + '10' }]}>
+              <Image source={require('@/assets/images/Logo1.png')} style={styles.welcomeLogo} resizeMode="contain" />
+              <ThemedText type="headline" style={styles.welcomeHeadline}>SmartNutri</ThemedText>
+              <ThemedText type="caption" style={styles.welcomeTagline}>
+                Scan meals, understand Filipino dishes, and track nutrition on your phone.
+              </ThemedText>
+            </View>
+          </FadeInView>
+
           {storyMessages.map((message, index) => (
-            <MessageBubble key={index} text={message} index={index} />
+            <FadeInView key={index} delay={80 + index * 40}>
+              <MessageBubble text={message} index={index} />
+            </FadeInView>
           ))}
         </ScrollView>
       </View>
@@ -809,8 +822,8 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
       <View style={styles.byokCardsContainer}>
         <View style={[styles.byokCard, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.byokCardHeader}>
-            <View style={styles.byokEmojiContainer}>
-              <ThemedText style={styles.byokEmoji}>🧠</ThemedText>
+            <View style={[styles.byokIconContainer, { backgroundColor: colors.tint + '16' }]}>
+              <IconSymbol name="psychology" size={22} color={colors.tint} />
             </View>
             <View style={styles.byokTitleContainer}>
               <ThemedText style={styles.byokCardTitle}>SmartNutri uses Google Gemini models</ThemedText>
@@ -823,8 +836,8 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
         
         <View style={[styles.byokCard, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.byokCardHeader}>
-            <View style={styles.byokEmojiContainer}>
-              <ThemedText style={styles.byokEmoji}>🤑</ThemedText>
+            <View style={[styles.byokIconContainer, { backgroundColor: colors.tint + '16' }]}>
+              <IconSymbol name="wallet" size={22} color={colors.tint} />
             </View>
             <View style={styles.byokTitleContainer}>
               <ThemedText style={styles.byokCardTitle}>You can access Gemini models for free</ThemedText>
@@ -837,8 +850,8 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
         
         <View style={[styles.byokCard, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.byokCardHeader}>
-            <View style={styles.byokEmojiContainer}>
-              <ThemedText style={styles.byokEmoji}>🔐</ThemedText>
+            <View style={[styles.byokIconContainer, { backgroundColor: colors.tint + '16' }]}>
+              <IconSymbol name="lock.fill" size={22} color={colors.tint} />
             </View>
             <View style={styles.byokTitleContainer}>
               <ThemedText style={styles.byokCardTitle}>Your device talks directly to Google</ThemedText>
@@ -897,6 +910,24 @@ export function OnboardingScreen({ onComplete, mode = 'onboarding', onCancel }: 
               autoCorrect={false}
               placeholderTextColor={colors.text + '40'}
             />
+          </View>
+
+          <View style={[styles.termsCard, { backgroundColor: colors.cardBackground, borderColor: colors.text + '12' }]}>
+            <TouchableOpacity
+              style={styles.termsRow}
+              onPress={() => setAcceptedTerms(value => !value)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.termsCheck, { borderColor: colors.tint, backgroundColor: acceptedTerms ? colors.tint : 'transparent' }]}>
+                {acceptedTerms ? <IconSymbol name="checkmark" size={14} color={colors.background} /> : null}
+              </View>
+              <ThemedText type="caption" style={styles.termsText}>
+                I agree to the SmartNutri Terms of Service.
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => themedAlert('Terms of Service', TERMS_OF_SERVICE)}>
+              <ThemedText type="caption" style={{ color: colors.tint }}>Read full terms</ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -1296,6 +1327,29 @@ const styles = StyleSheet.create({
     fontSize: 16.5,
     lineHeight: 24,
   },
+  welcomeHero: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 24,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 24,
+    gap: 10,
+  },
+  welcomeLogo: {
+    width: 112,
+    height: 112,
+    marginBottom: 4,
+  },
+  welcomeHeadline: {
+    textAlign: 'center',
+  },
+  welcomeTagline: {
+    textAlign: 'center',
+    maxWidth: 280,
+  },
   welcomeTitleContainer: {
     width: '100%',
     marginTop: 30,
@@ -1566,14 +1620,12 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 12,
   },
-  byokEmojiContainer: {
-    width: 60,
+  byokIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  byokEmoji: {
-    fontSize: 40,
-    lineHeight: 48,
   },
   byokTitleContainer: {
     flex: 1,
@@ -1722,5 +1774,29 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     marginTop: 8,
+  },
+  termsCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 12,
+    gap: 8,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  termsCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  termsText: {
+    flex: 1,
+    lineHeight: 18,
   },
 });

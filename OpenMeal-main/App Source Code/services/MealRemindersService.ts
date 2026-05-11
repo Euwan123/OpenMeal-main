@@ -409,8 +409,8 @@ class MealRemindersService {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `Time for ${reminder.name}! 🍽️`,
-          body: 'Tap to log your meal and track your nutrition',
+          title: `${reminder.name} check-in`,
+          body: 'Open SmartNutri to scan your meal and keep your nutrition streak alive.',
           data: { 
             reminderId: reminder.id,
             mealName: reminder.name,

@@ -5,7 +5,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'headline' | 'label' | 'caption';
 };
 
 export function ThemedText({
@@ -27,6 +27,9 @@ export function ThemedText({
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
         type === 'link' ? [styles.link, { color: tintColor }] : undefined,
+        type === 'headline' ? styles.headline : undefined,
+        type === 'label' ? styles.label : undefined,
+        type === 'caption' ? styles.caption : undefined,
         style,
       ]}
       {...rest}
@@ -58,5 +61,24 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontSize: 16,
     fontFamily: 'TikTokSans-Regular',
+  },
+  headline: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontFamily: 'TikTokSans-Bold',
+  },
+  label: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'TikTokSans-SemiBold',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    opacity: 0.72,
+  },
+  caption: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'TikTokSans-Regular',
+    opacity: 0.68,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, Alert, Linking, View, Modal, TextInput, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, StatusBar, KeyboardAvoidingView, Image } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, Alert, Linking, View, Modal, TextInput, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, StatusBar, KeyboardAvoidingView, Image, DeviceEventEmitter } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -10,6 +10,9 @@ import OnboardingService from '@/services/OnboardingService';
 import { DailyGoalsScreen } from '@/components/DailyGoalsScreen';
 import { AppHeader } from '@/components/AppHeader';
 import { MealRemindersModal } from '@/components/MealRemindersModal';
+import { AchievementsModal } from '@/components/AchievementsModal';
+import { JoggingRemindersModal } from '@/components/JoggingRemindersModal';
+import AchievementsService from '@/services/AchievementsService';
 import { NutritionHistoryChart, Nutrient } from '@/components/NutritionHistoryChart';
 import { requestHealthConnectPermission, hasWritePermission } from '@/services/HealthConnectService';
 import { useFocusEffect } from '@react-navigation/native';
@@ -18,7 +21,8 @@ import ExportImportService from '@/services/ExportImportService';
 import { ExportImportModal } from '@/components/ExportImportModal';
 import * as LicenseService from '@/services/LicenseService';
 import { useNavigation } from '@react-navigation/native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
+import { TERMS_SUMMARY } from '@/constants/LegalContent';
 
 const nutrients: Nutrient[] = ['calories', 'protein', 'fats', 'carbs'];
 const { width } = Dimensions.get('window');
@@ -36,6 +40,9 @@ export default function ProfileScreen() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showDailyGoals, setShowDailyGoals] = useState(false);
   const [showMealReminders, setShowMealReminders] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showJoggingReminders, setShowJoggingReminders] = useState(false);
+  const [achievementSummary, setAchievementSummary] = useState({ unlocked: 0, total: 0 });
   const [showAIModelModal, setShowAIModelModal] = useState(false);
   const [showDeleteHistory, setShowDeleteHistory] = useState(false);
   const [exportProgress, setExportProgress] = useState({ visible: false, progress: 0, message: '' });
@@ -51,6 +58,22 @@ export default function ProfileScreen() {
   const openMealReminders = () => {
     setShowMealReminders(true);
   };
+
+  const openAchievements = () => {
+    setShowAchievements(true);
+  };
+
+  const openJoggingReminders = () => {
+    setShowJoggingReminders(true);
+  };
+
+  const loadAchievementSummary = useCallback(async () => {
+    const progress = await AchievementsService.getProgress();
+    setAchievementSummary({
+      unlocked: progress.filter(item => item.unlocked).length,
+      total: progress.length,
+    });
+  }, []);
 
   const openAIModelModal = () => {
     setShowAIModelModal(true);
@@ -99,11 +122,19 @@ export default function ProfileScreen() {
     checkPermission();
   }, [checkPermission]);
 
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('openJoggingReminders', () => {
+      setShowJoggingReminders(true);
+    });
+    return () => subscription.remove();
+  }, []);
+
   // Re-check each time the screen comes into focus (covers revocation in Settings)
   useFocusEffect(
     useCallback(() => {
       checkPermission();
-    }, [checkPermission])
+      loadAchievementSummary();
+    }, [checkPermission, loadAchievementSummary])
   );
 
   const handleHealthConnectPress = async () => {
@@ -126,6 +157,10 @@ export default function ProfileScreen() {
       <AppHeader title="SmartNutri" />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.growthHeader}>
+          <ThemedText type="headline">Growth</ThemedText>
+          <ThemedText type="caption">Track how your nutrition changes across the week.</ThemedText>
+        </View>
         <View style={styles.chartCarousel}>
           <ScrollView
             horizontal
@@ -202,7 +237,37 @@ export default function ProfileScreen() {
               <IconSymbol name="bell.edit" size={24} color={colors.text} style={styles.optionIcon} />
               <View style={styles.optionText}>
                 <ThemedText style={styles.optionTitle}>Meal Reminders</ThemedText>
-                <ThemedText style={styles.optionSubtitle}>Get notified to log your meals</ThemedText>
+                <ThemedText style={styles.optionSubtitle}>Smarter meal check-ins and streak nudges</ThemedText>
+              </View>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={colors.text + '60'} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.option, { borderColor: colors.text + '20', backgroundColor: colors.cardBackground }]}
+            onPress={openJoggingReminders}
+          >
+            <View style={styles.optionContent}>
+              <IconSymbol name="figure.run" size={24} color={colors.text} style={styles.optionIcon} />
+              <View style={styles.optionText}>
+                <ThemedText style={styles.optionTitle}>Jogging</ThemedText>
+                <ThemedText style={styles.optionSubtitle}>Schedule movement reminders and log sessions</ThemedText>
+              </View>
+            </View>
+            <IconSymbol name="chevron.right" size={16} color={colors.text + '60'} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.option, { borderColor: colors.text + '20', backgroundColor: colors.cardBackground }]}
+            onPress={openAchievements}
+          >
+            <View style={styles.optionContent}>
+              <IconSymbol name="star.fill" size={24} color={colors.text} style={styles.optionIcon} />
+              <View style={styles.optionText}>
+                <ThemedText style={styles.optionTitle}>Achievements</ThemedText>
+                <ThemedText style={styles.optionSubtitle}>
+                  {achievementSummary.unlocked}/{achievementSummary.total} unlocked
+                </ThemedText>
               </View>
             </View>
             <IconSymbol name="chevron.right" size={16} color={colors.text + '60'} />
@@ -270,7 +335,7 @@ export default function ProfileScreen() {
             <ThemedText style={styles.appName}>About the author</ThemedText>
             <View style={styles.authorHeader}>
               <Image
-                source={require('@/assets/images/max-romer-profile.jpg')}
+                source={require('@/assets/images/Logo1.png')}
                 style={styles.authorImage}
               />
               <View style={styles.authorInfo}>
@@ -310,36 +375,46 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
             <ThemedText style={styles.version}>Version 1.0.0</ThemedText>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText type="headline" style={styles.legalHeader}>Legal and licenses</ThemedText>
+          <View style={[styles.infoCard, { backgroundColor: colors.text + '10' }]}>
+            <ThemedText type="label">Terms of Service</ThemedText>
+            <ThemedText style={styles.legalSummary}>{TERMS_SUMMARY}</ThemedText>
+            <TouchableOpacity style={styles.legalLinkRow} onPress={() => router.push('/terms' as Href)}>
+              <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>Read full terms</ThemedText>
+              <IconSymbol name="chevron.right" size={14} color={colors.tint} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.infoCard, { backgroundColor: colors.text + '10' }]}>
+            <ThemedText type="label">MIT License</ThemedText>
+            <ThemedText style={styles.legalSummary}>
+              Copyright (c) 2026 Euwan Abogadie. SmartNutri is released under the MIT License for personal and educational use.
+            </ThemedText>
+          </View>
+
+          <View style={[styles.infoCard, { backgroundColor: colors.text + '10' }]}>
+            <ThemedText type="label">Third-party notices</ThemedText>
+            <ThemedText style={styles.legalSummary}>
+              Review bundled open-source licenses and font attribution used by SmartNutri.
+            </ThemedText>
             <View style={styles.authorLinks}>
+              <TouchableOpacity style={styles.authorLink} onPress={openLicenses}>
+                <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>App licenses</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.authorLink} onPress={() => router.push('/font-license')}>
+                <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>Font license</ThemedText>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.authorLink}
                 onPress={() => Linking.openURL('https://github.com/Euwan123')}
               >
                 <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>GitHub</ThemedText>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.authorLink}
-                onPress={openLicenses}
-              >
-                <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>Licenses</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.authorLink}
-                onPress={() => router.push('/font-license')}
-              >
-                <ThemedText style={[styles.authorLinkText, { color: colors.tint }]}>Font License</ThemedText>
-              </TouchableOpacity>
             </View>
-          </View>
-        </View>
-
-        {/* MIT License Card */}
-        <View style={styles.section}>
-          <View style={[styles.infoCard, { backgroundColor: colors.text + '10' }]}> 
-            <ThemedText style={styles.appName}>MIT License</ThemedText>
-            <ThemedText style={styles.appDescription}>
-              {`Copyright (c) 2026 Euwan Abogadie\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`}
-            </ThemedText>
           </View>
         </View>
       </ScrollView>
@@ -360,6 +435,19 @@ export default function ProfileScreen() {
       <MealRemindersModal
         visible={showMealReminders}
         onClose={() => setShowMealReminders(false)}
+      />
+
+      <AchievementsModal
+        visible={showAchievements}
+        onClose={() => {
+          setShowAchievements(false);
+          loadAchievementSummary();
+        }}
+      />
+
+      <JoggingRemindersModal
+        visible={showJoggingReminders}
+        onClose={() => setShowJoggingReminders(false)}
       />
 
       {/* AI Model Modal */}
@@ -845,6 +933,25 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
+  },
+  growthHeader: {
+    marginBottom: 12,
+    gap: 4,
+  },
+  legalHeader: {
+    marginBottom: 12,
+  },
+  legalSummary: {
+    fontSize: 14,
+    lineHeight: 21,
+    opacity: 0.78,
+    marginTop: 8,
+  },
+  legalLinkRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   chartCarousel: {
     marginBottom: 16,

@@ -3,6 +3,7 @@ import { Platform, DeviceEventEmitter } from 'react-native';
 import GeminiService from './GeminiService';
 import FileSystemStorageService, { MealAnalysis } from './FileSystemStorageService';
 import { writeMealToHealthConnect } from './HealthConnectService';
+import AchievementsService from './AchievementsService';
 // Euwan
 // 24 hours in milliseconds
 const MEAL_TIMEOUT_MS = 24 * 60 * 60 * 1000;
@@ -63,7 +64,11 @@ export async function processMeal(meal: MealAnalysis): Promise<void> {
           encoding: FileSystem.EncodingType.Base64,
         });
         
-        analysis = await GeminiService.analyzeFood(base64, meal.comment);
+        if (meal.scanType === 'ingredients') {
+          analysis = await GeminiService.analyzeIngredients(base64, meal.comment);
+        } else {
+          analysis = await GeminiService.analyzeFood(base64, meal.comment);
+        }
       }
     }
 
@@ -89,6 +94,7 @@ export async function processMeal(meal: MealAnalysis): Promise<void> {
 
     // Emit event for real-time UI update
     DeviceEventEmitter.emit('mealUpdated', completedMeal);
+    await AchievementsService.evaluateAfterMeal(completedMeal);
 
   } catch (error) {
     console.error('Analysis processing error:', error);

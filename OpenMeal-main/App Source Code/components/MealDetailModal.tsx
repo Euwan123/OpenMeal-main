@@ -372,7 +372,7 @@ export function MealDetailModal({ visible, onClose, meal, onDelete }: MealDetail
 
       // Save the image to the gallery
       const asset = await MediaLibrary.createAssetAsync(imageUri);
-      await MediaLibrary.createAlbumAsync('OpenMeal', asset, false);
+      await MediaLibrary.createAlbumAsync('SmartNutri', asset, false);
       
       Alert.alert('Success', 'Image saved to gallery!');
       setShowSaveButton(null);
@@ -828,7 +828,40 @@ export function MealDetailModal({ visible, onClose, meal, onDelete }: MealDetail
             ))}
           </ThemedView>
 
-          {/* Meal Insights */}
+          {meal.analysis?.detected_ingredients?.length > 0 && (
+            <ThemedView style={[
+              styles.itemsCard,
+              {
+                borderColor: colors.text + '20',
+                backgroundColor: colors.cardBackground,
+              },
+            ]}>
+              <ThemedText style={styles.itemsTitle}>Detected Ingredients</ThemedText>
+              {meal.analysis.detected_ingredients.map((ingredient: string, index: number) => (
+                <View key={index} style={styles.itemRow}>
+                  <ThemedText style={styles.itemName}>• {ingredient}</ThemedText>
+                </View>
+              ))}
+            </ThemedView>
+          )}
+
+          {meal.analysis?.recipe_steps?.length > 0 && (
+            <ThemedView style={[
+              styles.itemsCard,
+              {
+                borderColor: colors.text + '20',
+                backgroundColor: colors.cardBackground,
+              },
+            ]}>
+              <ThemedText style={styles.itemsTitle}>Recipe</ThemedText>
+              {meal.analysis.recipe_steps.map((step: string, index: number) => (
+                <View key={index} style={styles.itemRow}>
+                  <ThemedText style={styles.itemName}>{index + 1}. {step}</ThemedText>
+                </View>
+              ))}
+            </ThemedView>
+          )}
+
           {meal.analysis?.meal_insights && (
             meal.analysis.meal_insights.health_benefits?.length > 0 || 
             meal.analysis.meal_insights.health_concerns?.length > 0
