@@ -7,6 +7,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
 import FileSystemStorageService, { MealAnalysis } from '@/services/FileSystemStorageService';
 import DailyGoalsService from '@/services/DailyGoalsService';
+import { SkeletonBlock } from '@/components/SkeletonBlock';
 
 export type Nutrient = 'calories' | 'protein' | 'fats' | 'carbs';
 
@@ -199,7 +200,11 @@ export const NutritionHistoryChart = React.memo(({ nutrient }: NutritionHistoryC
 
       <View style={styles.chartContainer}>
         {loading ? (
-          <ThemedText type="caption">Loading growth chart...</ThemedText>
+          <View style={styles.skeletonWrap} accessibilityElementsHidden>
+            <SkeletonBlock width="100%" height={18} borderRadius={8} />
+            <SkeletonBlock width="70%" height={14} borderRadius={8} />
+            <SkeletonBlock width={chartWidth} height={chartHeight} borderRadius={12} />
+          </View>
         ) : error ? (
           <ThemedText type="caption">{error}</ThemedText>
         ) : chartData.every(day => day.value === 0) ? (
@@ -325,6 +330,11 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     alignItems: 'center',
+  },
+  skeletonWrap: {
+    width: '100%',
+    gap: 10,
+    alignItems: 'stretch',
   },
   svgContainer: {
     position: 'relative',

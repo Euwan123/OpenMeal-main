@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -9,6 +9,8 @@ import FileSystemStorageService, { MealAnalysis } from '@/services/FileSystemSto
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { MealDetailModal } from '@/components/MealDetailModal';
 import { retryMeal } from '@/services/AnalysisProcessor';
+import { themedAlert } from '@/services/ThemedAlert';
+import { SkeletonBlock } from '@/components/SkeletonBlock';
 
 interface MealTimelineCardProps {
   meal: MealAnalysis;
@@ -57,7 +59,7 @@ export function MealTimelineCard({ meal, onDelete }: MealTimelineCardProps) {
       await retryMeal(meal.id);
     } catch (error) {
       console.error('Error retrying meal:', error);
-      Alert.alert('Retry Failed', 'Unable to retry meal analysis. Please try again later.');
+      themedAlert('Retry failed', 'Could not retry this scan. Check your connection and try again.');
     }
   };
 
@@ -71,42 +73,25 @@ export function MealTimelineCard({ meal, onDelete }: MealTimelineCardProps) {
 
   const showDetails = () => {
     if (meal.isLoading || meal.analysis?.isAnalyzing) {
-      Alert.alert(
-        'Meal Analysis',
-        'This meal is still being analyzed. Please wait for the analysis to complete.',
+      themedAlert(
+        'Still analyzing',
+        'Wait for analysis to finish, or delete this entry.',
         [
-          { 
-            text: 'Delete', 
-            style: 'destructive',
-            onPress: handleDeleteMeal
-          },
-          {
-            text: 'Close',
-            style: 'cancel'
-          }
+          { text: 'Delete', style: 'destructive', onPress: handleDeleteMeal },
+          { text: 'Close', style: 'cancel' },
         ]
       );
       return;
     }
 
     if (meal.hasError) {
-      Alert.alert(
-        'Meal Analysis', 
-        'Failed to analyze this meal. Would you like to retry or delete it?', 
+      themedAlert(
+        'Analysis failed',
+        'Retry the scan or remove this entry.',
         [
-          { 
-            text: 'Retry', 
-            onPress: handleRetryMeal
-          },
-          { 
-            text: 'Delete', 
-            style: 'destructive',
-            onPress: handleDeleteMeal
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel'
-          }
+          { text: 'Retry', onPress: handleRetryMeal },
+          { text: 'Delete', style: 'destructive', onPress: handleDeleteMeal },
+          { text: 'Cancel', style: 'cancel' },
         ]
       );
       return;
@@ -129,7 +114,18 @@ export function MealTimelineCard({ meal, onDelete }: MealTimelineCardProps) {
 
   return (
     <>
-      <TouchableOpacity onPress={showDetails} activeOpacity={0.7}>
+      <TouchableOpacity
+        onPress={showDetails}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isLoading
+            ? 'Meal entry, analyzing'
+            : hasError
+              ? 'Meal entry, analysis failed, open for options'
+              : `Meal, ${mealTitle}`
+        }
+      >
         <ThemedView style={[
           styles.card, 
           { 
@@ -187,7 +183,9 @@ export function MealTimelineCard({ meal, onDelete }: MealTimelineCardProps) {
           </View>
 
           <View style={styles.imageContainer}>
-            {meal.imageUri ? (
+            {isLoading && !meal.imageUri ? (
+              <SkeletonBlock width={64} height={64} borderRadius={10} />
+            ) : meal.imageUri ? (
               meal.afterImageUri ? (
                 <View style={styles.beforeAfterImages}>
                   <Image source={{ uri: meal.imageUri }} style={styles.halfImage} />

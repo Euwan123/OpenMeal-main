@@ -16,6 +16,7 @@ import MealRemindersService from '@/services/MealRemindersService';
 import JoggingRemindersService from '@/services/JoggingRemindersService';
 import { resumePending } from '@/services/AnalysisProcessor';
 import { ThemedAlertHost } from '@/components/ThemedAlertHost';
+import { installDiagnosticHandlerIfNeeded } from '@/services/DiagnosticLogService';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -64,6 +65,12 @@ export default function RootLayout() {
       // Cleanup the service when app unmounts
       MealRemindersService.cleanup();
     };
+  }, [isOnboardingComplete]);
+
+  useEffect(() => {
+    if (isOnboardingComplete) {
+      installDiagnosticHandlerIfNeeded();
+    }
   }, [isOnboardingComplete]);
 
   const setupAnalysisResumption = async () => {

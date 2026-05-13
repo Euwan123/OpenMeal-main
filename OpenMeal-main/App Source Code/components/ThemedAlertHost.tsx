@@ -10,6 +10,7 @@ import {
 import { ThemedText } from '@/components/ThemedText';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import { DesignTokens } from '@/constants/DesignTokens';
 import { ThemedAlertPayload } from '@/services/ThemedAlert';
 
 export function ThemedAlertHost() {
@@ -48,7 +49,7 @@ export function ThemedAlertHost() {
           style={[
             styles.card,
             {
-              width: Math.min(width - 40, 420),
+              width: Math.min(width - DesignTokens.space.xl * 2, 420),
               backgroundColor: colors.cardBackground,
               borderColor: colors.text + '14',
             },
@@ -65,7 +66,7 @@ export function ThemedAlertHost() {
                 </ThemedText>
               ) : null}
               <View style={styles.actions}>
-                {alert.buttons.map((button, index) => {
+                {alert.buttons.map((button: ThemedAlertPayload['buttons'][number], index: number) => {
                   const isCancel = button.style === 'cancel';
                   const isDestructive = button.style === 'destructive';
                   return (
@@ -74,6 +75,7 @@ export function ThemedAlertHost() {
                       onPress={() => handlePress(button)}
                       style={[
                         styles.button,
+                        { minHeight: DesignTokens.minTouch, justifyContent: 'center' },
                         isCancel
                           ? {
                               backgroundColor: colors.text + '10',
@@ -111,12 +113,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: DesignTokens.space.xl,
   },
   card: {
     borderWidth: 1,
-    borderRadius: 20,
-    padding: 22,
+    borderRadius: DesignTokens.radius.xl,
+    padding: DesignTokens.space.xl,
     gap: 12,
   },
   title: {

@@ -10,6 +10,7 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AddMealModal } from '@/components/AddMealModal';
+import { OfflineBanner } from '@/components/OfflineBanner';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -32,6 +33,7 @@ export default function TabLayout() {
     return (
       <HapticTab
         {...props}
+        accessibilityLabel="Open scan to log a meal or ingredients"
         onPress={() => {
           setModalVisible(true);
         }}
@@ -43,7 +45,9 @@ export default function TabLayout() {
 
   return (
     <>
-      <Tabs
+      <View style={{ flex: 1 }}>
+        <OfflineBanner />
+        <Tabs
         screenOptions={{
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
           headerShown: false,
@@ -123,7 +127,8 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-      
+      </View>
+
       <AddMealModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, Alert, Linking, View, Modal, TextInput, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, StatusBar, KeyboardAvoidingView, Image, DeviceEventEmitter } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, Alert, Linking, View, Modal, TextInput, Dimensions, NativeSyntheticEvent, NativeScrollEvent, Platform, StatusBar, KeyboardAvoidingView, Image, DeviceEventEmitter, Switch } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -23,6 +23,12 @@ import * as LicenseService from '@/services/LicenseService';
 import { useNavigation } from '@react-navigation/native';
 import { router, type Href } from 'expo-router';
 import { TERMS_SUMMARY } from '@/constants/LegalContent';
+import GeminiService from '@/services/GeminiService';
+import { themedAlert } from '@/services/ThemedAlert';
+import {
+  getDiagnosticLoggingEnabled,
+  setDiagnosticLoggingEnabled,
+} from '@/services/DiagnosticLogService';
 
 const nutrients: Nutrient[] = ['calories', 'protein', 'fats', 'carbs'];
 const { width } = Dimensions.get('window');
@@ -43,6 +49,7 @@ export default function ProfileScreen() {
   const [showAchievements, setShowAchievements] = useState(false);
   const [showJoggingReminders, setShowJoggingReminders] = useState(false);
   const [achievementSummary, setAchievementSummary] = useState({ unlocked: 0, total: 0 });
+  const [diagnosticLogging, setDiagnosticLogging] = useState(false);
   const [showAIModelModal, setShowAIModelModal] = useState(false);
   const [showDeleteHistory, setShowDeleteHistory] = useState(false);
   const [exportProgress, setExportProgress] = useState({ visible: false, progress: 0, message: '' });
@@ -134,6 +141,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       checkPermission();
       loadAchievementSummary();
+      void getDiagnosticLoggingEnabled().then(setDiagnosticLogging);
     }, [checkPermission, loadAchievementSummary])
   );
 
@@ -272,6 +280,27 @@ export default function ProfileScreen() {
             </View>
             <IconSymbol name="chevron.right" size={16} color={colors.text + '60'} />
           </TouchableOpacity>
+
+          <View
+            style={[styles.option, { borderColor: colors.text + '20', backgroundColor: colors.cardBackground }]}
+          >
+            <View style={styles.optionContent}>
+              <IconSymbol name="insights" size={24} color={colors.text} style={styles.optionIcon} />
+              <View style={styles.optionText}>
+                <ThemedText style={styles.optionTitle}>Diagnostic logging</ThemedText>
+                <ThemedText style={styles.optionSubtitle}>Store the last error on this device only</ThemedText>
+              </View>
+            </View>
+            <Switch
+              value={diagnosticLogging}
+              onValueChange={async value => {
+                setDiagnosticLogging(value);
+                await setDiagnosticLoggingEnabled(value);
+              }}
+              trackColor={{ false: colors.text + '20', true: colors.tint + '55' }}
+              thumbColor={diagnosticLogging ? colors.tint : colors.background}
+            />
+          </View>
 
           <TouchableOpacity
             style={[styles.option, { borderColor: colors.text + '20', backgroundColor: colors.cardBackground }]}
@@ -484,17 +513,39 @@ function ApiKeyChangeModal({ visible, onClose, colors }: {
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleVerify = async () => {
+    if (!apiKey.trim()) {
+      themedAlert('Required', 'Enter your API key first.');
+      return;
+    }
+    if (!apiKey.startsWith('AIza') || apiKey.length < 30) {
+      themedAlert('Invalid API key', 'Use a key that starts with AIza and is at least 30 characters.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await GeminiService.verifyApiKeyCandidate(apiKey.trim());
+      themedAlert('Verified', 'Gemini accepted this key. You can save it when you are ready.');
+    } catch (error) {
+      themedAlert(
+        'Verification failed',
+        error instanceof Error ? error.message : 'Check the key and your network, then try again.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!apiKey.trim()) {
-      Alert.alert('Required', 'Please enter your Gemini API key.');
+      themedAlert('Required', 'Enter your Gemini API key.');
       return;
     }
 
-    // Basic validation for Gemini API key format
     if (!apiKey.startsWith('AIza') || apiKey.length < 30) {
-      Alert.alert(
-        'Invalid API Key',
-        'Please enter a valid Gemini API key. It should start with "AIza" and be at least 30 characters long.'
+      themedAlert(
+        'Invalid API key',
+        'Use a valid Gemini API key that starts with AIza and is at least 30 characters long.'
       );
       return;
     }
@@ -502,11 +553,11 @@ function ApiKeyChangeModal({ visible, onClose, colors }: {
     setIsLoading(true);
     try {
       await OnboardingService.saveApiKey(apiKey.trim());
-      Alert.alert('Success', 'API key has been updated successfully.');
+      themedAlert('Saved', 'Your API key has been updated.');
       setApiKey('');
       onClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update API key. Please try again.');
+      themedAlert('Unable to save', 'The API key could not be saved. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -535,15 +586,30 @@ function ApiKeyChangeModal({ visible, onClose, colors }: {
         Platform.OS === 'android' && styles.androidModalContent
       ]}>
         <View style={[styles.modalHeader, { borderBottomColor: colors.text + '20' }]}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton} accessibilityLabel="Close">
             <IconSymbol name="xmark" size={24} color={colors.text} />
           </TouchableOpacity>
           <ThemedText style={styles.modalTitle}>Change API Key</ThemedText>
-          <TouchableOpacity onPress={handleSave} disabled={isLoading} style={[styles.saveButton, { backgroundColor: colors.text, opacity: isLoading ? 0.5 : 1 }]}>
-            <ThemedText style={[styles.saveText, { color: colors.background }]}>
-              {isLoading ? 'Saving...' : 'Save'}
-            </ThemedText>
-          </TouchableOpacity>
+          <View style={styles.modalHeaderActions}>
+            <TouchableOpacity
+              onPress={handleVerify}
+              disabled={isLoading}
+              style={[styles.verifyHeaderButton, { borderColor: colors.text + '25' }]}
+              accessibilityLabel="Verify API key with Gemini"
+            >
+              <ThemedText style={[styles.verifyHeaderText, { color: colors.tint }]}>Verify</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={isLoading}
+              style={[styles.saveButton, { backgroundColor: colors.text, opacity: isLoading ? 0.5 : 1 }]}
+              accessibilityLabel="Save API key"
+            >
+              <ThemedText style={[styles.saveText, { color: colors.background }]}>
+                {isLoading ? 'Saving...' : 'Save'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
@@ -1078,7 +1144,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalTitle: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 18,
+    fontFamily: 'TikTokSans-SemiBold',
+  },
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  verifyHeaderButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  verifyHeaderText: {
+    fontSize: 14,
     fontFamily: 'TikTokSans-SemiBold',
   },
   saveButton: {

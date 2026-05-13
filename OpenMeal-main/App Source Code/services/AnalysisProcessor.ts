@@ -4,8 +4,7 @@ import GeminiService from './GeminiService';
 import FileSystemStorageService, { MealAnalysis } from './FileSystemStorageService';
 import { writeMealToHealthConnect } from './HealthConnectService';
 import AchievementsService from './AchievementsService';
-// Euwan
-// 24 hours in milliseconds
+
 const MEAL_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 export async function processMeal(meal: MealAnalysis): Promise<void> {

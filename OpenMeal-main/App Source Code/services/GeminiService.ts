@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as SecureStore from 'expo-secure-store';
 import UserProfileService from './UserProfileService';
+import { withRetry } from '@/utils/withRetry';
 
 const SYSTEM_PROMPT = `Role:
 You are an expert AI nutritionist and food recognition specialist. Your task is to analyze an image of a meal, identify each food item, estimate its serving size, calculate its core nutritional values, and provide educational meal insights about the health benefits and concerns of the meal.
@@ -651,10 +652,12 @@ class GeminiService {
         promptText += ` The user has written the following comment: "${comment.trim()}"`;
       }
 
-      const result = await model.generateContent([
+      const result = await withRetry(() =>
+        model.generateContent([
         promptText,
         imagePart
-      ]);
+      ])
+      );
 
       const response = await result.response;
       const text = response.text();
@@ -695,7 +698,7 @@ class GeminiService {
 
 Please identify all food and beverage items mentioned, estimate reasonable serving sizes, and provide accurate nutritional breakdowns. If the description is brief or vague, make intelligent assumptions about typical preparations and serving sizes, noting these assumptions in the item notes.`;
 
-      const result = await model.generateContent([promptText]);
+      const result = await withRetry(() => model.generateContent([promptText]));
 
       const response = await result.response;
       const text = response.text();
@@ -748,11 +751,13 @@ Please identify all food and beverage items mentioned, estimate reasonable servi
         promptText += ` The user has written the following comment: "${comment.trim()}"`;
       }
 
-      const result = await model.generateContent([
+      const result = await withRetry(() =>
+        model.generateContent([
         promptText,
         imagePartBefore,
         imagePartAfter
-      ]);
+      ])
+      );
 
       const response = await result.response;
       const text = response.text();
@@ -798,7 +803,7 @@ Please identify all food and beverage items mentioned, estimate reasonable servi
         promptText += ` The user added this note: "${comment.trim()}"`;
       }
 
-      const result = await model.generateContent([promptText, imagePart]);
+      const result = await withRetry(() => model.generateContent([promptText, imagePart]));
       const response = await result.response;
       const text = response.text();
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -811,6 +816,24 @@ Please identify all food and beverage items mentioned, estimate reasonable servi
     } catch (error) {
       console.error('Gemini Ingredient Recipe API Error:', error);
       throw new Error('Failed to generate a recipe from ingredients');
+    }
+  }
+
+  async verifyApiKeyCandidate(apiKey: string): Promise<void> {
+    const trimmed = apiKey.trim();
+    if (!trimmed.startsWith('AIza') || trimmed.length < 30) {
+      throw new Error('Invalid API key format');
+    }
+    const client = new GoogleGenerativeAI(trimmed);
+    const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const result = await withRetry(() => model.generateContent('Reply with exactly: OK'), {
+      attempts: 2,
+      delaysMs: [600],
+    });
+    const response = await result.response;
+    const text = response.text();
+    if (!text || !text.toUpperCase().includes('OK')) {
+      throw new Error('Could not verify this key with Gemini');
     }
   }
 
@@ -854,7 +877,7 @@ Generate a new, corrected JSON object based on this feedback.`;
         });
       }
 
-      const result = await model.generateContent(promptParts);
+      const result = await withRetry(() => model.generateContent(promptParts));
 
       const response = await result.response;
       const text = response.text();

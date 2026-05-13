@@ -59,6 +59,7 @@ const MAPPING = {
   'checkmark.seal.fill': 'verified',
   'chart.line.uptrend.xyaxis': 'show-chart',
   'wallet': 'account-balance-wallet',
+  'wifi.off': 'wifi-off',
 } as const;
 
 /**

@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import FileSystemStorageService, { MealAnalysis, EMPTY_ANALYSIS } from './FileSystemStorageService';
+import { parseAndValidateImportJson } from './exportSchemaValidator';
 import DailyGoalsService, { DailyGoals } from './DailyGoalsService';
 import UserProfileService, { UserProfile } from './UserProfileService';
 import MealRemindersService, { MealReminder } from './MealRemindersService';
@@ -221,53 +222,15 @@ class ExportImportService {
     await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
   }
 
-  /**
-   * Validate export data schema
-   */
-  private validateExportData(data: any): data is ExportData {
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid data format');
-    }
-
-    if (!data.version || typeof data.version !== 'string') {
-      throw new Error('Missing or invalid version field');
-    }
-
-    if (!data.export_date || typeof data.export_date !== 'string') {
-      throw new Error('Missing or invalid export_date field');
-    }
-
-    if (!Array.isArray(data.meals)) {
-      throw new Error('Missing or invalid meals array');
-    }
-
-    // Validate each meal
-    for (const meal of data.meals) {
-      if (!meal.id || !meal.timestamp) {
-        throw new Error('Invalid meal data: missing required fields');
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Import data from JSON file
-   */
   async importData(fileUri: string, onProgress?: (progress: number, message: string) => void): Promise<void> {
     try {
       onProgress?.(0, 'Reading import file...');
 
-      // Read and parse JSON file
       const jsonContent = await FileSystem.readAsStringAsync(fileUri);
-      const data = JSON.parse(jsonContent);
 
       onProgress?.(10, 'Validating data...');
 
-      // Validate schema
-      if (!this.validateExportData(data)) {
-        throw new Error('Invalid export file format');
-      }
+      const data = parseAndValidateImportJson(jsonContent) as ExportData;
 
       // Import user profile
       if (data.user_profile) {
